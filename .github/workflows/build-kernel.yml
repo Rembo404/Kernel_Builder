@@ -82,6 +82,7 @@ jobs:
 
       - name: Setup APT Cache Path
         run: |
+          echo "REPO_OWNER=Rembo404" >> $GITHUB_ENV
           echo "APT_CACHE_DIR=$HOME/apt-cache" >> $GITHUB_ENV
           mkdir -p $HOME/apt-cache
           
@@ -196,7 +197,7 @@ jobs:
         run: |
           # Clone repositories
           git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}
-          git clone https://github.com/Rembo404/kernel_patches.git
+          git clone https://github.com/$REPO_OWNER/kernel_patches.git
           cd kernel_workspace
           
           # Copy SUSFS patches
@@ -423,7 +424,7 @@ jobs:
 
       - name: 📦 Make AnyKernel3 (without KPM)
         run: |
-          git clone https://github.com/SiPetualang404/AnyKernel3.git --depth=1 AnyKernel3_NoKPM
+          git clone https://github.com/$REPO_OWNER/AnyKernel3.git --depth=1 AnyKernel3_NoKPM
           rm -rf ./AnyKernel3_NoKPM/.git
           rm -rf ./AnyKernel3_NoKPM/push.sh
           cd ./AnyKernel3_NoKPM
@@ -472,7 +473,7 @@ jobs:
       - name: 📦 Make AnyKernel3 (with KPM)
         if: ${{ inputs.ak3_kpm && inputs.kernelsu_variant == 'SukiSU-Ultra' }}
         run: |
-         git clone https://github.com/SiPetualang404/AnyKernel3.git --depth=1 AnyKernel3_KPM  
+         git clone https://github.com/$REPO_OWNER/AnyKernel3.git --depth=1 AnyKernel3_KPM  
          rm -rf ./AnyKernel3_KPM/.git
          rm -rf ./AnyKernel3_KPM/push.sh
          cp ../kernel_workspace/common/out/arch/arm64/boot/Image ./Image
