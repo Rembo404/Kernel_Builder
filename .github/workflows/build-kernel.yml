@@ -489,7 +489,7 @@ jobs:
           echo "📦📤 Packing files..."
           cat > release.txt << 'EOF'
           **New Build Published\!\!**
-          >Kernel Builder: @$REPO_OWNER
+          >Kernel Builder: @${{ env.REPO_OWNER }}
           ```
           KernelVer：${{ inputs.android_version }}-${{ inputs.kernel_version }}.${{ env.SUBLEVEL }}
           DriverKSU：${{ inputs.kernelsu_variant }} (${{ env.KSUVER }})
