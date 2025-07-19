@@ -1,0 +1,138 @@
+name: Clean workflows
+
+on:
+  workflow_dispatch:
+    inputs:
+      workflow_name:
+        type: choice
+        description: 'Cleanup workflow name'
+        required: true
+        default: 'GKI Kernel Build'
+        options:
+          - GKI Kernel Build
+      count:
+        description: 'Maximum number of cleanup runs'
+        required: false
+        default: '30'
+      delete_failed:
+        description: 'Delete failed run records?'
+        required: false
+        type: boolean
+        default: true
+      delete_success:
+        description: 'Delete successful running records?'
+        required: false
+        type: boolean
+        default: false
+      delete_cancelled:
+        description: 'Delete canceled run records?'
+        required: false
+        type: boolean
+        default: true
+      reverse_order:
+        description: 'Start cleaning from old to new?'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh jq
+
+      - name: Certification GitHub CLI
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+      - name: Clean up the specified workflow and the running records of this workflow
+        env:
+          # Automatically obtain current warehouse information
+          REPO: ${{ github.repository }}
+          COUNT: ${{ inputs.count }}
+          DELETE_FAILED: ${{ inputs.delete_failed }}
+          DELETE_SUCCESS: ${{ inputs.delete_success }}
+          DELETE_CANCELLED: ${{ inputs.delete_cancelled }}
+          REVERSE_ORDER: ${{ inputs.reverse_order }}
+          WORKFLOW_NAME: ${{ inputs.workflow_name }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -e
+
+          echo "Current warehouse: $REPO"
+          echo "Find the ID of workflow \"$WORKFLOW_NAME\"..."
+          WORKFLOW_ID=$(gh api repos/$REPO/actions/workflows | jq -r ".workflows[] | select(.name == \"$WORKFLOW_NAME\") | .id")
+          if [ -z "$WORKFLOW_ID" ]; then
+            echo "Workflow \"$WORKFLOW_NAME\" not found, exiting."
+            exit 1
+          fi
+
+
+          echo "Start paging to obtain all running records..."
+          PER_PAGE=100
+          PAGE=1
+          MATCHED_RUNS="[]"
+          while true; do
+            RESP=$(gh api "repos/$REPO/actions/workflows/$WORKFLOW_ID/runs?per_page=$PER_PAGE&page=$PAGE")
+            RUNS=$(echo "$RESP" | jq '.workflow_runs')
+            COUNT_THIS_PAGE=$(echo "$RUNS" | jq 'length')
+
+            if [ "$COUNT_THIS_PAGE" -eq 0 ]; then
+              break
+            fi
+
+            MATCHED_RUNS=$(jq -s 'add' <(echo "$MATCHED_RUNS") <(echo "$RUNS"))
+            PAGE=$((PAGE + 1))
+          done
+
+          echo "A total of $(echo "$MATCHED_RUNS" | jq 'length') running records were obtained."
+
+          # Sort order: Oldest to Newest or Newest to Oldest
+          if [[ "$REVERSE_ORDER" == "true" ]]; then
+            SORTED_RUNS=$(echo "$MATCHED_RUNS" | jq 'sort_by(.run_started_at)')
+          else
+            SORTED_RUNS=$(echo "$MATCHED_RUNS" | jq 'sort_by(.run_started_at) | reverse')
+          fi
+
+          # Only keep the first N items
+          TO_DELETE_RUNS=$(echo "$SORTED_RUNS" | jq ".[0:${COUNT}]")
+
+          echo "$TO_DELETE_RUNS" | jq -c '.[]' | while read run; do
+            ID=$(echo "$run" | jq -r '.id')
+            STATUS=$(echo "$run" | jq -r '.conclusion')
+            STATE=$(echo "$run" | jq -r '.status')
+
+            if [[ "$STATE" == "in_progress" || "$STATE" == "queued" ]]; then
+              echo "Skip run ID: $ID (state is $STATE)"
+              continue
+            fi
+
+            if [[ "$STATUS" == "failure" && "$DELETE_FAILED" != "true" ]]; then continue; fi
+            if [[ "$STATUS" == "success" && "$DELETE_SUCCESS" != "true" ]]; then continue; fi
+            if [[ "$STATUS" == "cancelled" && "$DELETE_CANCELLED" != "true" ]]; then continue; fi
+
+            echo "Delete running record ID: $ID (Status: $STATUS)"
+            gh api -X DELETE "repos/$REPO/actions/runs/$ID" || echo "Delete failed"
+          done
+
+          echo "Clean up the running records of this workflow..."
+          SELF_WORKFLOW_ID=$(gh api repos/$REPO/actions/workflows | jq -r '.workflows[] | select(.name == "Clean workflows") | .id')
+          if [ -n "$SELF_WORKFLOW_ID" ]; then
+            SELF_RUNS=$(gh api "repos/$REPO/actions/workflows/$SELF_WORKFLOW_ID/runs?per_page=50" | jq -c '.workflow_runs[]')
+
+            echo "$SELF_RUNS" | while read run; do
+              ID=$(echo "$run" | jq -r '.id')
+              if [[ "$ID" == "$CURRENT_RUN_ID" ]]; then
+                echo "Skip current run ID: $ID"
+                continue
+              fi
+              echo "Delete this workflow running record ID: $ID"
+              gh api -X DELETE "repos/$REPO/actions/runs/$ID" || echo "Delete failed"
+            done
+          fi
