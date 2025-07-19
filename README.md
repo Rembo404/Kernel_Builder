@@ -10,20 +10,20 @@
 
 **【Element】**
 
-    https://kernel.org/
-    https://kernelsu.org/
+https://kernel.org/
+https://kernelsu.org/
 
 **【Traits】**
 
-    This product is a compressed package within a compressed package file. For SHA256 detection, see the note next to it when downloading.
+This product is a compressed package within a compressed package file. For SHA256 detection, see the note next to it when downloading.
 
 **【Adapted to models】**
 
-    GKI compatible mobile phones.
+GKI compatible mobile phones.
 
 **【Adverse reactions】** 
 
-    Common: Fever. Occasionally: crash. Uncommon: Black Brick. 
+Common: Fever. Occasionally: crash. Uncommon: Black Brick. 
 
 **【Notes】**
 
@@ -42,8 +42,8 @@ A study of generation dynamics of a universal kernel image was conducted on Pixe
 
 **【Storage】**
 
-    Any conditions.
+Any conditions.
 
 **【Packaging】**
 
-    Compressed package file.
+Compressed package file.
