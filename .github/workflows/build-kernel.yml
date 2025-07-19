@@ -299,21 +299,6 @@ jobs:
           else
             echo "File does not exist: fs/f2fs/Makefile"
           fi
-
-      - name: Apply Custom and Experimental Patches
-        run: |
-          #if ${{ inputs.enable_le9uo }}; then
-          cd kernel_workspace
-          echo "Applying custom le9uo patch for kernel 6.6..."
-          curl -LSs -o le9uo-final-v5.patch "https://github.com/Rembo404/Kernel_Builder/le9uo-final-v5.patch"
-          curl -LSs -o 0002-vm.workingset_protection-On-by-default.patch "https://github.com/Rembo404/Kernel_Builder/0002-vm.workingset_protection-On-by-default.patch"
-          cd ./common
-          # Using our final, fixed patch
-          patch -p1 -F 3 < ../le9uo-final-v5.patch
-          echo "Main le9uo patch (v5) applied."
-          patch -p1 -F 3 < ../0002-vm.workingset_protection-On-by-default.patch
-          echo "workingset_protection enabled by default."
-          #fi
           
       - name: Apply ECN and TCP Pacing Tweaks
         run: |
