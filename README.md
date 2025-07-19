@@ -4,9 +4,9 @@
 
 **【Kernel name】**
 
-  Common name: Common kernel image
-  English name: Generic Kernel Image
-  Chinese Pinyin: Tongyong Neihe Yingxiang
+    Common name: Common kernel image
+    English name: Generic Kernel Image
+    Chinese Pinyin: Tongyong Neihe Yingxiang
 
 **【Element】**
 
