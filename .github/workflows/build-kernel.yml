@@ -265,7 +265,6 @@ jobs:
           fi
 
       - name: Upgrade LZ4 to v1.10.0
-        if: ${{ inputs.use_zram }}
         run: |
           cd kernel_workspace/common
           
