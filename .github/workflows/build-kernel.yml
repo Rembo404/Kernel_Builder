@@ -303,12 +303,15 @@ jobs:
       - name: Apply Custom and Experimental Patches
         run: |
           #if ${{ inputs.enable_le9uo }}; then
+          cd kernel_workspace
           echo "Applying custom le9uo patch for kernel 6.6..."
-          cd $GITHUB_WORKSPACE/kernel_workspace/common/
+          curl -LSs -o le9uo-final-v5.patch "https://github.com/Rembo404/Kernel_Builder/le9uo-final-v5.patch"
+          curl -LSs -o 0002-vm.workingset_protection-On-by-default.patch "https://github.com/Rembo404/Kernel_Builder/0002-vm.workingset_protection-On-by-default.patch"
+          cd ./common
           # Using our final, fixed patch
-          patch -p1 -F 3 < $GITHUB_WORKSPACE/le9uo-final-v5.patch
+          patch -p1 -F 3 < ../le9uo-final-v5.patch
           echo "Main le9uo patch (v5) applied."
-          patch -p1 -F 3 < $GITHUB_WORKSPACE/0002-vm.workingset_protection-On-by-default.patch
+          patch -p1 -F 3 < ../0002-vm.workingset_protection-On-by-default.patch
           echo "workingset_protection enabled by default."
           #fi
           
@@ -476,7 +479,7 @@ jobs:
           cd kernel_workspace/common/out/arch/arm64/boot
           TAG=$(curl -s https://api.github.com/repos/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases | \jq -r 'map(select(.prerelease)) | first | .tag_name')
           echo "Latest tag is: $TAG"
-          curl -Ls -o patch_linux "https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/download/$TAG/patch_linux"
+          curl -LSs -o patch_linux "https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/download/$TAG/patch_linux"
           chmod +x patch_linux
           ./patch_linux
           rm -f Image
