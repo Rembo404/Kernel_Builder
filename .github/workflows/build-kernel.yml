@@ -196,7 +196,7 @@ jobs:
         run: |
           # Clone repositories
           git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}
-          git clone https://github.com/SiPetualang404/kernel_patches.git
+          git clone https://github.com/Rembo404/kernel_patches.git
           cd kernel_workspace
           
           # Copy SUSFS patches
