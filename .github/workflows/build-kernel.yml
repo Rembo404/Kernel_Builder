@@ -43,11 +43,6 @@ on:
         required: true
         type: boolean
         default: true
-      use_zram:
-        description: 'Enable the ZRAM Algorithm?'
-        required: true
-        type: boolean
-        default: true
       boot_nokpm:
         description: 'Generate boot without KPM?'
         required: true
@@ -205,7 +200,7 @@ jobs:
           cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
           cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
           cp ../kernel_patches/69_hide_stuff.patch ./common/
-
+          
           if [ "${{ inputs.kernelsu_variant }}" == "KernelSU-Next" ]; then
             echo "Applying SUSFS patches for KernelSU Next..."
             cd ./KernelSU-Next
@@ -247,6 +242,8 @@ jobs:
           fi
 
           cd ../common
+          SUSFS_VERSION=$(grep '#define SUSFS_VERSION' ./include/linux/susfs.h | awk -F'"' '{print $2}')
+          echo "SUSFS_VERSION=$SUSFS_VERSION" >> $GITHUB_ENV
           patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
           patch -p1 -F 3 < 69_hide_stuff.patch
           
@@ -302,27 +299,19 @@ jobs:
           else
             echo "File does not exist: fs/f2fs/Makefile"
           fi
-          
-      - name: 🔧 LZ4 v1.10.0 Configuration
-        if: ${{ inputs.use_zram }}
+
+      - name: Apply Custom and Experimental Patches
         run: |
-          cd kernel_workspace
+          #if ${{ inputs.enable_le9uo }}; then
+          echo "Applying custom le9uo patch for kernel 6.6..."
+          cd $GITHUB_WORKSPACE/kernel_workspace/common/
+          # Using our final, fixed patch
+          patch -p1 -F 3 < $GITHUB_WORKSPACE/le9uo-final-v5.patch
+          echo "Main le9uo patch (v5) applied."
+          patch -p1 -F 3 < $GITHUB_WORKSPACE/0002-vm.workingset_protection-On-by-default.patch
+          echo "workingset_protection enabled by default."
+          #fi
           
-          if [ "${{ inputs.kernel_version }}" = "6.6" ]; then
-            echo "CONFIG_ZSMALLOC=y" >> ./common/arch/arm64/configs/gki_defconfig
-            sed -i 's/CONFIG_ZRAM=m/CONFIG_ZRAM=y/g' ./common/arch/arm64/configs/gki_defconfig
-          fi
-
-          if [ "${{ inputs.android_version }}" = "android15" ]; then
-            sed -i 's/"drivers\/block\/zram\/zram\.ko",//g; s/"mm\/zsmalloc\.ko",//g' ./common/modules.bzl
-            echo "CONFIG_MODULE_SIG_FORCE=n" >> ./common/arch/arm64/configs/gki_defconfig
-          fi
-
-          if grep -q "CONFIG_ZSMALLOC=y" "./common/arch/arm64/configs/gki_defconfig" && grep -q "CONFIG_ZRAM=y" "./common/arch/arm64/configs/gki_defconfig"; then
-            echo "Add Config for zram LZ4..."
-            
-          fi
-
       - name: Apply ECN and TCP Pacing Tweaks
         run: |
           set -e
@@ -349,10 +338,7 @@ jobs:
             echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_MANUAL_HOOK=y" >> ./common/arch/arm64/configs/gki_defconfig
           fi
-
-          #echo "CONFIG_ZSMALLOC=y" >> ./common/arch/arm64/configs/gki_defconfig
-          #sed -i 's/CONFIG_ZRAM=m/CONFIG_ZRAM=y/g' ./common/arch/arm64/configs/gki_defconfig
-            
+          
           # Enable advanced compression support
           echo "CONFIG_CRYPTO_LZ4=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_CRYPTO_LZ4HC=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -368,6 +354,7 @@ jobs:
           echo "CONFIG_KERNEL_LZ4=y" >> ./common/arch/arm64/configs/gki_defconfig
             
           # TMPFS Configuration
+          echo "CONFIG_RCU_TRACE=n" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_TMPFS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_TMPFS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
 
@@ -398,7 +385,11 @@ jobs:
           echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          
+
+          # Add AutoFDO config
+          echo "# AutoFDO (Feedback-Directed Optimization)" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_AUTOFDO_CLANG=y" >> ./common/arch/arm64/configs/gki_defconfig
+            
           if [ "${{ inputs.use_bbr }}" == "true" ]; then
             # BBR Configuration
             echo "CONFIG_TCP_CONG_ADVANCED=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -516,7 +507,7 @@ jobs:
           KernelVer：${{ inputs.android_version }}-${{ inputs.kernel_version }}.${{ env.SUBLEVEL }}
           DriverKSU：${{ inputs.kernelsu_variant }} (${{ env.KSUVER }})
           ZRAM: LZ4 v1.10.0
-          SUSFS ඞ: v1.5.9
+          SUSFS ඞ: ${{ env.SUSFS_VERSION }}
           ```
           EOF
           
