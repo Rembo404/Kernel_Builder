@@ -326,17 +326,20 @@ jobs:
             echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_MANUAL_HOOK=y" >> ./common/arch/arm64/configs/gki_defconfig
           fi
+
+          # Hibernation Settings
+          echo "CONFIG_HIBERNATION=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_HIBERNATION_COMPRESS=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_HIBERNATION_COMPRESS_ALGO_LZ4=y" >> ./common/arch/arm64/configs/gki_defconfig
           
           # Enable advanced compression support
           echo "CONFIG_CRYPTO_LZ4=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_CRYPTO_LZ4HC=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CRYPTO_ZSTD=y" >> ./common/arch/arm64/configs/gki_defconfig
           
           # File system level compression support
           echo "CONFIG_F2FS_FS_COMPRESSION=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_F2FS_FS_LZ4=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_F2FS_FS_LZ4HC=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_F2FS_FS_ZSTD=y" >> ./common/arch/arm64/configs/gki_defconfig
           
           # Kernel image compression configuration
           echo "CONFIG_KERNEL_LZ4=y" >> ./common/arch/arm64/configs/gki_defconfig
